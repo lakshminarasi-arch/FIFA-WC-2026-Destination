@@ -6,8 +6,11 @@ import { fmt, daysTo, tzInfo } from "../../lib/time";
 import {
   favGroup,
   favNextMatch,
+  isFinished,
   isLive,
+  lastFinishedMatch,
   liveMatch,
+  nextUpcomingMatch,
   rankedNews,
   todayMatches,
 } from "../../lib/select";
@@ -29,12 +32,15 @@ export function Today({ snapshot }: { snapshot: Snapshot }) {
   const group = favGroup(snapshot, fav);
   const fixtures = todayMatches(snapshot, tz, now);
   const news = rankedNews(snapshot, fav, 4);
+  // Feature card: a live match if any, otherwise the genuinely next match to
+  // kick off (not just the day's earliest fixture), else the latest result.
+  const featured = live ?? nextUpcomingMatch(snapshot, now) ?? lastFinishedMatch(snapshot) ?? fixtures[0];
 
   return (
     <div>
       <div className="tl-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 20 }}>
         {/* Live / next feature card */}
-        <FeatureCard snapshot={snapshot} match={live ?? fixtures[0]} onOpen={openMatch} />
+        <FeatureCard snapshot={snapshot} match={featured} onOpen={openMatch} />
 
         {/* Your team · next up */}
         <div style={{ ...card, padding: 20 }}>
@@ -142,7 +148,10 @@ function FeatureCard({ snapshot, match, onOpen }: { snapshot: Snapshot; match: M
     );
   }
   const live = isLive(match);
+  const finished = isFinished(match);
+  const zi = tzInfo(tz);
   const ko = fmt(match.utcDate, tz);
+  const showScore = live || finished;
   return (
     <div style={{ background: color.ink, borderRadius: 18, padding: 24, color: "#fff", position: "relative", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
@@ -151,18 +160,29 @@ function FeatureCard({ snapshot, match, onOpen }: { snapshot: Snapshot; match: M
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: color.liveDot, animation: "tl-pulse 1.4s ease infinite" }} />
             <span style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: ".14em", color: color.liveText }}>LIVE{match.minute ? ` · ${match.minute}'` : ""}</span>
           </div>
+        ) : finished ? (
+          <span style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: ".14em", color: color.win }}>LATEST RESULT</span>
         ) : (
-          <span style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: ".14em", color: color.darkMuted }}>NEXT UP · {ko.full}</span>
+          <span style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: ".14em", color: color.darkMuted }}>NEXT UP · {ko.date}</span>
         )}
         <span style={{ fontFamily: font.mono, fontSize: 10, letterSpacing: ".1em", color: color.darkMuted }}>{(match.group ?? "").toUpperCase()}</span>
       </div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 26 }}>
         <Side snapshot={snapshot} code={match.home.code} name={match.home.name} />
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 52, lineHeight: 1, letterSpacing: "-.02em", whiteSpace: "nowrap" }}>
-            {match.score.home ?? 0} – {match.score.away ?? 0}
-          </div>
-          <div style={{ fontFamily: font.mono, fontSize: 9.5, letterSpacing: ".12em", color: color.darkMuted, marginTop: 8 }}>{live ? "IN PROGRESS" : "KICKOFF"}</div>
+          {showScore ? (
+            <>
+              <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 52, lineHeight: 1, letterSpacing: "-.02em", whiteSpace: "nowrap" }}>
+                {match.score.home ?? 0} – {match.score.away ?? 0}
+              </div>
+              <div style={{ fontFamily: font.mono, fontSize: 9.5, letterSpacing: ".12em", color: color.darkMuted, marginTop: 8 }}>{live ? "IN PROGRESS" : "FULL TIME"}</div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 40, lineHeight: 1, letterSpacing: "-.02em", whiteSpace: "nowrap" }}>{ko.time}</div>
+              <div style={{ fontFamily: font.mono, fontSize: 9.5, letterSpacing: ".12em", color: color.darkMuted, marginTop: 8 }}>{ko.date} · {zi.abbr}</div>
+            </>
+          )}
         </div>
         <Side snapshot={snapshot} code={match.away.code} name={match.away.name} />
       </div>

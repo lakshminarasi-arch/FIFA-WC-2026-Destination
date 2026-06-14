@@ -46,6 +46,20 @@ export function byKickoff(a: Match, b: Match): number {
   return Date.parse(a.utcDate) - Date.parse(b.utcDate);
 }
 
+/** The next match due to kick off (soonest future fixture); if none remain,
+ *  the earliest still-unplayed fixture. Used for the Today feature card. */
+export function nextUpcomingMatch(s: Snapshot, now: number): Match | undefined {
+  const pending = s.matches
+    .filter((m) => !isFinished(m) && !isLive(m))
+    .sort(byKickoff);
+  return pending.find((m) => Date.parse(m.utcDate) >= now) ?? pending[0];
+}
+
+/** The most recently finished match (for a fallback when nothing's upcoming). */
+export function lastFinishedMatch(s: Snapshot): Match | undefined {
+  return s.matches.filter(isFinished).sort(byKickoff).pop();
+}
+
 export function favGroup(s: Snapshot, fav: string): Group | undefined {
   return s.groups.find((g) => g.rows.some((r) => r.teamCode === fav));
 }
