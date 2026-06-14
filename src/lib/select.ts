@@ -17,6 +17,31 @@ export function liveMatch(s: Snapshot): Match | undefined {
   return s.matches.find(isLive);
 }
 
+/** The match the Match Center should show: the explicitly-selected one, else a
+ *  sensible default (live → most recent finished → next upcoming → first). */
+export function defaultMatch(s: Snapshot, selectedId: string | null): Match | undefined {
+  if (selectedId) {
+    const m = s.matches.find((x) => x.id === selectedId);
+    if (m) return m;
+  }
+  const live = liveMatch(s);
+  if (live) return live;
+  const finished = [...s.matches].filter(isFinished).sort(byKickoff);
+  if (finished.length) return finished[finished.length - 1];
+  const upcoming = [...s.matches]
+    .filter((m) => !isFinished(m))
+    .sort(byKickoff);
+  return upcoming[0] ?? s.matches[0];
+}
+
+export function groupForMatch(s: Snapshot, m: Match | undefined): Group | undefined {
+  if (!m) return undefined;
+  if (m.group) return s.groups.find((g) => g.name === m.group);
+  return s.groups.find((g) =>
+    g.rows.some((r) => r.teamCode === m.home.code || r.teamCode === m.away.code),
+  );
+}
+
 export function byKickoff(a: Match, b: Match): number {
   return Date.parse(a.utcDate) - Date.parse(b.utcDate);
 }

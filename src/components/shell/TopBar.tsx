@@ -3,6 +3,7 @@ import type { Snapshot } from "../../types";
 import { color, font, shadow } from "../../lib/theme";
 import { useApp } from "../../state/store";
 import { clock, TZ_OPTIONS, tzInfo } from "../../lib/time";
+import { defaultMatch } from "../../lib/select";
 
 function pageMeta(
   snapshot: Snapshot,
@@ -16,7 +17,7 @@ function pageMeta(
       return { title: "My Team", tag: name };
     }
     case "match": {
-      const m = snapshot.matches.find((x) => x.id === selectedMatchId);
+      const m = defaultMatch(snapshot, selectedMatchId);
       if (!m) return { title: "Match Center", tag: "SELECT A MATCH" };
       const status =
         m.status === "FINISHED"

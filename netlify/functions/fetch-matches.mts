@@ -92,11 +92,16 @@ function teamFrom(t: FDTeam | undefined): Team {
   return TEAM_CATALOG[c] ? { ...TEAM_CATALOG[c], name } : fallbackTeam(c, name);
 }
 
-function groupLabel(g: string | null | undefined): string | null {
+function groupLetter(g: string | null | undefined): string | null {
   if (!g) return null;
-  // football-data returns e.g. "GROUP_C" → "Group C"
-  const m = /GROUP_?([A-Z])/i.exec(g);
-  return m ? `Group ${m[1].toUpperCase()}` : g;
+  // football-data may return "Group D", "GROUP_D", "GROUP D" or just "D".
+  const m = /GROUP[\s_]*([A-Z])/i.exec(g) || /^([A-Z])$/i.exec(g.trim());
+  return m ? m[1].toUpperCase() : null;
+}
+
+function groupLabel(g: string | null | undefined): string | null {
+  const letter = groupLetter(g);
+  return letter ? `Group ${letter}` : (g ?? null);
 }
 
 async function fetchFD(path: string): Promise<FDResponse> {
@@ -150,7 +155,7 @@ export default async (): Promise<Response> => {
     const groups: Group[] = (standingsRes.standings ?? [])
       .filter((s) => (s.type ?? "TOTAL") === "TOTAL" && s.group)
       .map((s) => {
-        const letter = (/GROUP_?([A-Z])/i.exec(s.group ?? "")?.[1] ?? "?").toUpperCase();
+        const letter = groupLetter(s.group) ?? "?";
         const rows: StandingRow[] = (s.table ?? []).map((r) => {
           addTeam(r.team);
           return {

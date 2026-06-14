@@ -3,7 +3,14 @@ import type { Match, Snapshot } from "../../types";
 import { color, font, shadow } from "../../lib/theme";
 import { useApp } from "../../state/store";
 import { fmt, relativeTime, tzInfo } from "../../lib/time";
-import { isFinished, isLive, liveMatch, matchNews } from "../../lib/select";
+import {
+  defaultMatch,
+  groupForMatch,
+  isFinished,
+  isLive,
+  matchNews,
+  rankedNews,
+} from "../../lib/select";
 import { getMatchDetail, type StatRow, type EventType } from "../../data/matchDetails";
 import { Flag } from "../ui/Flag";
 
@@ -18,18 +25,10 @@ const card: CSSProperties = {
   marginTop: 18,
 };
 
-function pickMatch(s: Snapshot, id: string | null): Match | undefined {
-  if (id) {
-    const m = s.matches.find((x) => x.id === id);
-    if (m) return m;
-  }
-  return liveMatch(s) ?? s.matches.find(isFinished) ?? s.matches[0];
-}
-
 export function MatchCenter({ snapshot }: { snapshot: Snapshot }) {
   const { tz, selectedMatchId, now } = useApp();
   const [tab, setTab] = useState<Tab>("stats");
-  const match = pickMatch(snapshot, selectedMatchId);
+  const match = defaultMatch(snapshot, selectedMatchId);
 
   if (!match) {
     return <EmptyCard text="No match selected. Open a fixture from Today or the Schedule." />;
@@ -89,7 +88,7 @@ export function MatchCenter({ snapshot }: { snapshot: Snapshot }) {
         })}
       </div>
 
-      {tab === "stats" && <StatsTab match={match} detail={detail} />}
+      {tab === "stats" && <StatsTab snapshot={snapshot} match={match} detail={detail} />}
       {tab === "summary" && <SummaryTab snapshot={snapshot} detail={detail} />}
       {tab === "news" && <NewsTab snapshot={snapshot} match={match} now={now} />}
       {tab === "analysis" && <AnalysisTab detail={detail} />}
@@ -113,13 +112,78 @@ function EmptyCard({ text }: { text: string }) {
   );
 }
 
+// Shown when the feed has no advanced stats: the facts + group standings we do
+// have, so the Match Center is useful on the free tier instead of blank.
+function MatchFacts({ snapshot, match }: { snapshot: Snapshot; match: Match }) {
+  const { tz } = useApp();
+  const zi = tzInfo(tz);
+  const group = groupForMatch(snapshot, match);
+  const result =
+    match.score.home != null && match.score.away != null
+      ? `${match.score.home} – ${match.score.away}`
+      : isLive(match)
+        ? "In progress"
+        : "Not started";
+
+  const facts: Array<[string, string]> = [
+    [isFinished(match) ? "Result" : "Status", isFinished(match) ? result : isLive(match) ? `${result}${match.minute ? ` · ${match.minute}'` : ""}` : "Upcoming"],
+    ["Stage", `${match.group ?? match.stage ?? "—"}${match.matchday ? ` · Matchday ${match.matchday}` : ""}`],
+    ["Kickoff · your time", `${fmt(match.utcDate, tz).full} ${zi.abbr}`],
+    ["Kickoff · venue", match.venueZone ? `${fmt(match.utcDate, match.venueZone).full} ${match.venueAbbr ?? ""}` : "—"],
+    ["Venue", match.venue ?? "To be confirmed"],
+  ];
+
+  return (
+    <div style={{ ...card, padding: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 16 }}>Match facts</div>
+        <span style={{ fontFamily: font.mono, fontSize: 9, letterSpacing: ".08em", color: color.faint }}>SCORES &amp; STANDINGS</span>
+      </div>
+      {facts.map(([label, value]) => (
+        <div key={label} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, padding: "10px 0", borderTop: `1px solid ${color.rowDivider}` }}>
+          <span style={{ fontFamily: font.mono, fontSize: 9.5, letterSpacing: ".08em", color: color.muted, textTransform: "uppercase" }}>{label}</span>
+          <span style={{ fontWeight: 600, fontSize: 13.5, textAlign: "right" }}>{value}</span>
+        </div>
+      ))}
+
+      {group && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 14 }}>{group.name}</div>
+            <span style={{ fontFamily: font.mono, fontSize: 9, letterSpacing: ".1em", color: color.faint }}>P W D L GD PTS</span>
+          </div>
+          {group.rows.map((r) => {
+            const inMatch = r.teamCode === match.home.code || r.teamCode === match.away.code;
+            const gd = r.goalDifference > 0 ? `+${r.goalDifference}` : r.goalDifference < 0 ? `−${Math.abs(r.goalDifference)}` : "0";
+            return (
+              <div key={r.teamCode} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: `1px solid ${color.rowDivider}` }}>
+                <span style={{ width: 14, fontFamily: font.mono, fontSize: 11, color: r.rank <= 2 ? color.win : r.rank === 3 ? color.caution : color.faint, fontWeight: 600 }}>{r.rank}</span>
+                <Flag teams={snapshot.teams} code={r.teamCode} width={22} height={15} radius={2} />
+                <span style={{ fontWeight: inMatch ? 700 : 500, fontSize: 13.5, color: inMatch ? color.accent : color.ink }}>{snapshot.teams[r.teamCode]?.name ?? r.teamCode}</span>
+                <span style={{ marginLeft: "auto", fontFamily: font.mono, fontSize: 11, color: color.muted }}>{`${r.played} ${r.won} ${r.draw} ${r.lost} · ${gd}`}</span>
+                <span style={{ fontFamily: font.display, fontWeight: 700, fontSize: 13.5, width: 22, textAlign: "right" }}>{r.points}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ marginTop: 16, fontSize: 11.5, color: color.faint, lineHeight: 1.5 }}>
+        Detailed stats (possession, xG, shots) and timelines aren't available from our free data source — scores and standings update on every refresh.
+      </div>
+    </div>
+  );
+}
+
 // ---- Stats -----------------------------------------------------------------
-function StatsTab({ match, detail }: { match: Match; detail: ReturnType<typeof getMatchDetail> }) {
+function StatsTab({ snapshot, match, detail }: { snapshot: Snapshot; match: Match; detail: ReturnType<typeof getMatchDetail> }) {
   const [statMode, setStatMode] = useState<"agg" | "compare">("agg");
   const [expanded, setExpanded] = useState<number | null>(null);
 
+  // No advanced stats from the free feed → show the match facts + group table
+  // we DO have, so the tab is informative rather than empty.
   if (!detail || detail.stats.length === 0) {
-    return <EmptyCard text="Detailed match statistics aren't available from our data source. We show scores, status and standings everywhere they're published." />;
+    return <MatchFacts snapshot={snapshot} match={match} />;
   }
 
   const seg = (active: boolean): CSSProperties => ({
@@ -235,12 +299,17 @@ function SummaryTab({ snapshot, detail }: { snapshot: Snapshot; detail: ReturnTy
 
 // ---- News ------------------------------------------------------------------
 function NewsTab({ snapshot, match, now }: { snapshot: Snapshot; match: Match; now: number }) {
-  const items = matchNews(snapshot, match);
+  const related = matchNews(snapshot, match);
+  // Fall back to general tournament headlines so the tab isn't empty when the
+  // feed has nothing tagged to either team.
+  const items = related.length ? related : rankedNews(snapshot, match.home.code, 6);
+  const heading = related.length ? null : "No headlines tagged to these teams yet — latest from across the tournament:";
   if (items.length === 0) {
-    return <EmptyCard text="No related headlines for this match yet." />;
+    return <EmptyCard text="No headlines available yet." />;
   }
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 18 }}>
+      {heading && <div style={{ fontSize: 12.5, color: color.muted, marginBottom: 2 }}>{heading}</div>}
       {items.map((n) => (
         <a key={n.id} href={n.link} target="_blank" rel="noopener noreferrer" style={{ background: color.surface, border: `1px solid ${color.hairline}`, borderRadius: 16, padding: 20, boxShadow: shadow.card, display: "flex", gap: 18, textDecoration: "none", color: "inherit" }}>
           <div style={{ width: 120, height: 80, borderRadius: 10, flex: "none", backgroundImage: "repeating-linear-gradient(135deg,#EFEFEA 0 8px,#F6F6F3 8px 16px)", border: `1px solid ${color.hairline}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
