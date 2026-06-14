@@ -85,12 +85,10 @@ export function TopBar({ snapshot }: { snapshot: Snapshot }) {
           </div>
         </button>
 
-        <div style={{ width: 38, height: 38, borderRadius: "50%", background: color.ink, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font.display, fontWeight: 600, fontSize: 13 }}>YK</div>
-
         {menu === "tz" && (
           <>
             <div onClick={() => setMenu(null)} style={{ position: "fixed", inset: 0, zIndex: 30 }} />
-            <div style={{ position: "absolute", top: 52, right: 48, width: 234, background: color.surface, border: `1px solid ${color.hairline}`, borderRadius: 14, boxShadow: shadow.popover, padding: 7, zIndex: 40 }}>
+            <div style={{ position: "absolute", top: 52, right: 0, width: 234, background: color.surface, border: `1px solid ${color.hairline}`, borderRadius: 14, boxShadow: shadow.popover, padding: 7, zIndex: 40 }}>
               <div style={{ fontFamily: font.mono, fontSize: 9, letterSpacing: ".12em", color: color.faint, padding: "7px 10px" }}>SHOW TIMES IN</div>
               {TZ_OPTIONS.map((z) => {
                 const active = z.id === tz;
