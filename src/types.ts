@@ -71,6 +71,32 @@ export interface Match {
   venueAbbr: string | null;
   /** Telecast partners — only present in fixtures; football-data does not supply these. */
   channels: string[];
+  /** Real match statistics from API-Football (single source), merged in by
+   *  get-data when available. Null/absent when we have none. */
+  stats?: LiveStat[] | null;
+  /** Real goal/card/sub timeline from API-Football, merged in by get-data. */
+  events?: LiveEvent[] | null;
+}
+
+/** A single statistic for a match (factual — possession, shots, etc.). */
+export interface LiveStat {
+  label: string;
+  home: number;
+  away: number;
+  unit?: string;
+  /** Higher precision display (e.g. xG-style) — not used by the free feed. */
+  dec?: boolean;
+}
+
+export type LiveEventType = "goal" | "pen" | "yellow" | "red" | "sub";
+
+/** A single timeline event (factual match incident). */
+export interface LiveEvent {
+  min: string;
+  type: LiveEventType;
+  teamCode: string | null;
+  player: string;
+  detail: string;
 }
 
 export interface NewsItem {
@@ -113,6 +139,8 @@ export interface Snapshot {
   meta: {
     matchesUpdated: string | null;
     newsUpdated: string | null;
+    /** When API-Football stats were last refreshed, or null if unused. */
+    statsUpdated?: string | null;
     /** True when we are serving a stale/last-good snapshot after an upstream failure. */
     degraded: boolean;
   };

@@ -14,9 +14,13 @@ export function Footer({ snapshot }: { snapshot: Snapshot }) {
         LAST UPDATED {updated} · NOW {clock(now, tz)}
       </div>
       <div style={{ fontSize: 11.5, color: color.muted }}>
-        Match data via{" "}
+        Scores &amp; standings via{" "}
         <a href="https://www.football-data.org" target="_blank" rel="noopener noreferrer" style={{ color: color.accent, textDecoration: "none" }}>
           football-data.org
+        </a>
+        ; match stats via{" "}
+        <a href="https://www.api-football.com" target="_blank" rel="noopener noreferrer" style={{ color: color.accent, textDecoration: "none" }}>
+          API-Football
         </a>
         . News headlines link out to BBC Sport, The Guardian and other sources — full articles remain with the publisher.
       </div>

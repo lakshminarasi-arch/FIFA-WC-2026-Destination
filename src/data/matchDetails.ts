@@ -21,7 +21,7 @@ export interface StatRow {
   sources?: SourceVal[];
 }
 
-export type EventType = "goal" | "pen" | "yellow" | "sub" | "ft";
+export type EventType = "goal" | "pen" | "yellow" | "red" | "sub" | "ft";
 
 export interface TimelineEvent {
   min: string;

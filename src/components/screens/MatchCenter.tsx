@@ -11,8 +11,33 @@ import {
   matchNews,
   rankedNews,
 } from "../../lib/select";
-import { getMatchDetail, type StatRow, type EventType } from "../../data/matchDetails";
+import { getMatchDetail, type MatchDetail, type StatRow, type EventType } from "../../data/matchDetails";
 import { Flag } from "../ui/Flag";
+
+// Build a Match Center "detail" from REAL API-Football stats/events merged onto
+// the match, falling back to bundled demo content (fixtures only). Live stats
+// are single-source, so no per-row source comparison.
+function liveDetail(match: Match): MatchDetail | null {
+  const hasStats = !!match.stats?.length;
+  const hasEvents = !!match.events?.length;
+  if (!hasStats && !hasEvents) return null;
+  const stats: StatRow[] = (match.stats ?? []).map((s) => ({
+    label: s.label,
+    home: s.home,
+    away: s.away,
+    unit: s.unit,
+    dec: s.dec,
+    emphasize: /xg|threat/i.test(s.label),
+  }));
+  const events = (match.events ?? []).map((e) => ({
+    min: e.min,
+    type: e.type as EventType,
+    team: e.teamCode,
+    main: e.player || (e.type === "sub" ? "Substitution" : e.detail || "Event"),
+    sub: e.detail,
+  }));
+  return { stats, events, analysis: [], clips: [] };
+}
 
 type Tab = "stats" | "summary" | "news" | "analysis" | "video";
 const TABS: Tab[] = ["stats", "summary", "news", "analysis", "video"];
@@ -34,7 +59,7 @@ export function MatchCenter({ snapshot }: { snapshot: Snapshot }) {
     return <EmptyCard text="No match selected. Open a fixture from Today or the Schedule." />;
   }
 
-  const detail = getMatchDetail(match.id);
+  const detail = liveDetail(match) ?? getMatchDetail(match.id);
   const zi = tzInfo(tz);
   const statusPill = isFinished(match)
     ? { text: "FULL TIME", c: color.win }
@@ -191,6 +216,10 @@ function StatsTab({ snapshot, match, detail }: { snapshot: Snapshot; match: Matc
     background: active ? color.surface : "transparent", color: active ? color.ink : color.muted, boxShadow: active ? "0 1px 2px rgba(20,22,29,.1)" : "none",
   });
 
+  // Multi-source comparison only makes sense if rows carry >1 source (demo data).
+  // Live API-Football stats are single-source, so the control is hidden.
+  const hasSources = detail.stats.some((s) => s.sources && s.sources.length > 0);
+
   return (
     <div style={{ ...card, padding: 22 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
@@ -198,10 +227,12 @@ function StatsTab({ snapshot, match, detail }: { snapshot: Snapshot; match: Matc
           <LegendDot c={color.accent} label={match.home.name} />
           <LegendDot c={color.ink} label={match.away.name} />
         </div>
-        <div style={{ display: "flex", gap: 2, background: "#EFEFEA", border: `1px solid ${color.hairline}`, borderRadius: 10, padding: 3 }}>
-          <button onClick={() => { setStatMode("agg"); setExpanded(null); }} style={seg(statMode === "agg")}>Aggregated</button>
-          <button onClick={() => setStatMode("compare")} style={seg(statMode === "compare")}>Compare sources</button>
-        </div>
+        {hasSources && (
+          <div style={{ display: "flex", gap: 2, background: "#EFEFEA", border: `1px solid ${color.hairline}`, borderRadius: 10, padding: 3 }}>
+            <button onClick={() => { setStatMode("agg"); setExpanded(null); }} style={seg(statMode === "agg")}>Aggregated</button>
+            <button onClick={() => setStatMode("compare")} style={seg(statMode === "compare")}>Compare sources</button>
+          </div>
+        )}
       </div>
 
       {detail.stats.map((s, i) => (
@@ -272,8 +303,8 @@ function SummaryTab({ snapshot, detail }: { snapshot: Snapshot; detail: ReturnTy
   if (!detail || detail.events.length === 0) {
     return <EmptyCard text="A minute-by-minute timeline isn't available for this match from our data source." />;
   }
-  const dotColor: Record<EventType, string> = { goal: color.ink, pen: color.ink, yellow: color.cardAmber, sub: color.accent, ft: color.win };
-  const labelText: Record<EventType, string> = { goal: "GOAL", pen: "PENALTY", yellow: "YELLOW", sub: "SUB", ft: "FULL TIME" };
+  const dotColor: Record<EventType, string> = { goal: color.ink, pen: color.ink, yellow: color.cardAmber, red: color.negative, sub: color.accent, ft: color.win };
+  const labelText: Record<EventType, string> = { goal: "GOAL", pen: "PENALTY", yellow: "YELLOW", red: "RED", sub: "SUB", ft: "FULL TIME" };
   return (
     <div style={{ ...card, padding: 24 }}>
       <div style={{ fontFamily: font.display, fontWeight: 700, fontSize: 16, marginBottom: 18 }}>Match timeline</div>

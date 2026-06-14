@@ -145,6 +145,32 @@ function buildNews(now: number): NewsItem[] {
   ];
 }
 
+// Sample real-style (single-source) stats + timeline on the live match, so dev
+// exercises the same path the API-Football merge produces in production.
+function withSampleStats(matches: Match[]): Match[] {
+  return matches.map((m) =>
+    m.id === "wc-bra-cro"
+      ? {
+          ...m,
+          stats: [
+            { label: "Possession", home: 55, away: 45, unit: "%" },
+            { label: "Total shots", home: 11, away: 7 },
+            { label: "Shots on target", home: 4, away: 3 },
+            { label: "Corners", home: 5, away: 2 },
+            { label: "Fouls", home: 8, away: 11 },
+            { label: "Yellow cards", home: 1, away: 2 },
+          ],
+          events: [
+            { min: "23", type: "goal", teamCode: "BRA", player: "Vinícius Jr", detail: "Normal Goal" },
+            { min: "41", type: "yellow", teamCode: "CRO", player: "Modrić", detail: "Yellow Card" },
+            { min: "58", type: "goal", teamCode: "CRO", player: "Kramarić", detail: "Normal Goal" },
+            { min: "63", type: "sub", teamCode: "BRA", player: "Rodrygo", detail: "Substitution" },
+          ],
+        }
+      : m,
+  );
+}
+
 export function getFixtureSnapshot(): Snapshot {
   const now = Date.now();
   return {
@@ -152,7 +178,7 @@ export function getFixtureSnapshot(): Snapshot {
     competition: { name: "FIFA World Cup 2026", currentMatchday: 1, season: "2026" },
     teams: TEAM_CATALOG,
     groups: buildGroups(),
-    matches: buildMatches(),
+    matches: withSampleStats(buildMatches()),
     news: buildNews(now),
     profiles: PROFILES,
     meta: {
