@@ -91,8 +91,8 @@ export function MatchCenter({ snapshot }: { snapshot: Snapshot }) {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 24, marginTop: 20, paddingTop: 18, borderTop: "1px solid rgba(255,255,255,.1)", flexWrap: "wrap" }}>
-          <Fact label="VENUE" value={match.venue ?? "TBC"} />
-          <Fact label="KICKOFF · VENUE" value={match.venueZone ? `${fmt(match.utcDate, match.venueZone).full} ${match.venueAbbr ?? ""}` : "—"} />
+          {match.venue && <Fact label="VENUE" value={match.venue} />}
+          {match.venueZone && <Fact label="KICKOFF · VENUE" value={`${fmt(match.utcDate, match.venueZone).full} ${match.venueAbbr ?? ""}`} />}
           <Fact label="KICKOFF · YOUR TIME" value={`${fmt(match.utcDate, tz).full} ${zi.abbr}`} />
         </div>
       </div>
@@ -154,9 +154,10 @@ function MatchFacts({ snapshot, match }: { snapshot: Snapshot; match: Match }) {
     [isFinished(match) ? "Result" : "Status", isFinished(match) ? result : isLive(match) ? `${result}${match.minute ? ` · ${match.minute}'` : ""}` : "Upcoming"],
     ["Stage", `${match.group ?? match.stage ?? "—"}${match.matchday ? ` · Matchday ${match.matchday}` : ""}`],
     ["Kickoff · your time", `${fmt(match.utcDate, tz).full} ${zi.abbr}`],
-    ["Kickoff · venue", match.venueZone ? `${fmt(match.utcDate, match.venueZone).full} ${match.venueAbbr ?? ""}` : "—"],
-    ["Venue", match.venue ?? "To be confirmed"],
   ];
+  // Only show venue / venue-local time when the feed actually provides a venue.
+  if (match.venueZone) facts.push(["Kickoff · venue", `${fmt(match.utcDate, match.venueZone).full} ${match.venueAbbr ?? ""}`]);
+  if (match.venue) facts.push(["Venue", match.venue]);
 
   return (
     <div style={{ ...card, padding: 22 }}>

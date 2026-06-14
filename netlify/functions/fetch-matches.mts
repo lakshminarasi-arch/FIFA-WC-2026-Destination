@@ -133,7 +133,10 @@ export async function runMatches(): Promise<Record<string, unknown>> {
     const matches: Match[] = (matchesRes.matches ?? []).map((m) => {
       addTeam(m.homeTeam);
       addTeam(m.awayTeam);
-      const vz = venueZone(m.venue);
+      // Only derive a venue timezone when we actually have a venue — otherwise
+      // leave it null rather than guessing Eastern (which made venue-local times
+      // wrong for every non-Eastern stadium).
+      const vz = m.venue ? venueZone(m.venue) : null;
       return {
         id: String(m.id ?? `${code(m.homeTeam)}-${code(m.awayTeam)}-${m.utcDate}`),
         utcDate: m.utcDate ?? new Date().toISOString(),
@@ -146,8 +149,8 @@ export async function runMatches(): Promise<Record<string, unknown>> {
         away: { code: code(m.awayTeam), name: m.awayTeam?.name ?? code(m.awayTeam) },
         score: { home: m.score?.fullTime?.home ?? null, away: m.score?.fullTime?.away ?? null },
         venue: m.venue ?? null,
-        venueZone: vz.zone,
-        venueAbbr: vz.abbr,
+        venueZone: vz ? vz.zone : null,
+        venueAbbr: vz ? vz.abbr : null,
         channels: [], // football-data does not supply telecast partners
       };
     });

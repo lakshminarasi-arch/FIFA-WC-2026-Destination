@@ -64,9 +64,9 @@ export function Today({ snapshot }: { snapshot: Snapshot }) {
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                 <Tile label="YOUR TIME" value={`${fmt(next.utcDate, tz).full} ${zi.abbr}`} />
-                <Tile label="VENUE" value={next.venueZone ? `${fmt(next.utcDate, next.venueZone).full} ${next.venueAbbr ?? ""}` : "—"} />
+                {next.venueZone && <Tile label="VENUE TIME" value={`${fmt(next.utcDate, next.venueZone).full} ${next.venueAbbr ?? ""}`} />}
               </div>
-              <div style={{ fontSize: 12, color: color.muted, marginTop: 11 }}>{next.venue ?? "Venue TBC"}</div>
+              {next.venue && <div style={{ fontSize: 12, color: color.muted, marginTop: 11 }}>{next.venue}</div>}
             </div>
           ) : (
             <div style={{ borderTop: `1px dashed ${color.hairline}`, paddingTop: 16, fontSize: 13, color: color.muted }}>No upcoming fixture scheduled yet.</div>
@@ -254,6 +254,6 @@ function ordinal(n: number): string {
 }
 
 function shortVenue(v: string | null): string {
-  if (!v) return "Venue TBC";
+  if (!v) return "";
   return v.split(",")[0];
 }

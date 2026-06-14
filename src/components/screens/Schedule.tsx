@@ -19,7 +19,7 @@ export function Schedule({ snapshot }: { snapshot: Snapshot }) {
           <path d="M12 7v5l3 2" strokeLinecap="round" />
         </svg>
         <span style={{ fontSize: 13, color: "#1F3BA8" }}>
-          Every kickoff shows <strong>your local time ({zi.abbr})</strong> alongside the <strong>venue's local time</strong>. Telecast partners are listed per region.
+          Every kickoff is shown in <strong>your local time ({zi.abbr})</strong>. The venue and its local time appear when our data source provides them.
         </span>
       </div>
 
@@ -92,7 +92,7 @@ function ScheduleRow({
           {match.group && <span style={{ fontFamily: font.mono, fontSize: 8.5, letterSpacing: ".08em", color: color.muted, background: "#F4F4F0", borderRadius: 5, padding: "3px 7px" }}>{match.group}</span>}
           {isFav && <span style={{ fontFamily: font.mono, fontSize: 8.5, letterSpacing: ".08em", color: color.accent, background: color.accentTint, borderRadius: 5, padding: "3px 7px" }}>MY TEAM</span>}
         </div>
-        <div style={{ fontSize: 12, color: color.slate, marginBottom: 8 }}>{match.venue ?? "Venue TBC"}</div>
+        {match.venue && <div style={{ fontSize: 12, color: color.slate, marginBottom: 8 }}>{match.venue}</div>}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
           {match.channels.map((c) => (
             <span key={c} style={{ fontFamily: font.mono, fontSize: 9, color: color.darkFaint, border: `1px solid ${color.hairline}`, borderRadius: 5, padding: "2px 7px" }}>{c}</span>
