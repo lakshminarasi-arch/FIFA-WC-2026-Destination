@@ -10,6 +10,8 @@ function pageMeta(
   screen: string,
   fav: string,
   selectedMatchId: string | null,
+  now: number,
+  tz: string,
 ): { title: string; tag: string } {
   switch (screen) {
     case "team": {
@@ -30,15 +32,24 @@ function pageMeta(
     case "sched":
       return { title: "Schedule", tag: "GROUP STAGE" };
     default: {
-      const md = snapshot.competition.currentMatchday;
-      return { title: "Today", tag: md ? `MATCHDAY ${md}` : "TOURNAMENT" };
+      // football-data's currentMatchday for the WC is unreliable, so the "Today"
+      // dashboard tags with today's date (in the user's zone) — always correct.
+      const today = new Intl.DateTimeFormat("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        timeZone: tz,
+      })
+        .format(now)
+        .toUpperCase();
+      return { title: "Today", tag: today };
     }
   }
 }
 
 export function TopBar({ snapshot }: { snapshot: Snapshot }) {
   const { screen, fav, tz, setTz, now, menu, setMenu, selectedMatchId } = useApp();
-  const { title, tag } = pageMeta(snapshot, screen, fav, selectedMatchId);
+  const { title, tag } = pageMeta(snapshot, screen, fav, selectedMatchId, now, tz);
   const zi = tzInfo(tz);
 
   const cell: CSSProperties = { padding: "7px 13px", textAlign: "left" };
