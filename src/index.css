@@ -1,0 +1,68 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+body {
+  background: #efefea;
+  color: #16181d;
+  font-family: "Hanken Grotesk", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+#root {
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d7d7d1;
+  border-radius: 10px;
+  border: 2px solid #efefea;
+}
+
+@keyframes tl-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Mobile: hide the desktop sidebar, show the bottom tab bar (see App.tsx). */
+.tl-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 880px) {
+  .tl-sidebar {
+    display: none !important;
+  }
+  .tl-bottom-nav {
+    display: flex !important;
+  }
+  .tl-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+  .tl-content {
+    padding: 18px 16px 96px !important;
+  }
+  .tl-topbar {
+    padding: 0 16px !important;
+  }
+  .tl-tz-cell-host {
+    display: none !important;
+  }
+}
