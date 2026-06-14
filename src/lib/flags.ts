@@ -3,9 +3,12 @@ import type { FlagDir, Team } from "../types";
 
 // Flags are rendered as simple CSS gradient colour bands (a placeholder per the
 // handoff), NOT real flag artwork. `flagStyle` fills its parent swatch.
-export function flagStyle(cols: string[], dir: FlagDir = "v"): CSSProperties {
+export function flagStyle(raw: Array<string | null | undefined>, dir: FlagDir = "v"): CSSProperties {
   const d = dir === "h" ? "180deg" : "90deg";
-  const n = cols.length || 1;
+  // Drop any nullish band so a malformed colour can't break the whole gradient.
+  const cols = raw.filter((c): c is string => !!c);
+  if (cols.length === 0) cols.push("#8A9099");
+  const n = cols.length;
   const stops = cols
     .map(
       (c, i) =>
@@ -46,8 +49,10 @@ function hash(s: string): number {
 
 export function fallbackTeam(code: string, name?: string): Team {
   const h = hash(code || name || "team");
+  // Unsigned shift: `>>` would go negative for h >= 2^31, yielding a negative
+  // index and an undefined (→ null) colour band.
   const a = FALLBACK_PALETTE[h % FALLBACK_PALETTE.length];
-  const b = FALLBACK_PALETTE[(h >> 8) % FALLBACK_PALETTE.length];
+  const b = FALLBACK_PALETTE[(h >>> 8) % FALLBACK_PALETTE.length];
   return {
     code,
     name: name || code,
