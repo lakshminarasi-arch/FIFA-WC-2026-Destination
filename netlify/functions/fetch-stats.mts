@@ -112,6 +112,11 @@ export async function runStats(): Promise<Record<string, unknown>> {
     const entries: Record<string, StatEntry> = { ...prev.entries };
 
     const fxRes = await af(`/fixtures?league=${LEAGUE}&season=${SEASON}`);
+    // API-Football returns HTTP 200 even for plan/key errors, with details in
+    // `errors`. Surface them so /api/refresh explains an empty result.
+    const apiErrors = fxRes.errors && (Array.isArray(fxRes.errors) ? fxRes.errors.length : Object.keys(fxRes.errors).length)
+      ? fxRes.errors
+      : null;
     const fixtures: FixtureLite[] = (fxRes.response ?? []).map((r: any) => ({
       id: r.fixture?.id,
       date: r.fixture?.date,
@@ -162,7 +167,15 @@ export async function runStats(): Promise<Record<string, unknown>> {
     }
 
     await store.setJSON("stats", { updatedAt: new Date().toISOString(), entries });
-    return { ok: true, fixtures: fixtures.length, fetchedCalls: fetched, cached: Object.keys(entries).length };
+    return {
+      ok: true,
+      league: LEAGUE,
+      season: SEASON,
+      fixtures: fixtures.length,
+      apiErrors,
+      fetchedCalls: fetched,
+      cached: Object.keys(entries).length,
+    };
   } catch (err) {
     console.error("[fetch-stats] failed:", err);
     return { ok: false, error: String(err) };
