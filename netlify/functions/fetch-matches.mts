@@ -112,9 +112,9 @@ async function fetchFD(path: string): Promise<FDResponse> {
   return (await res.json()) as FDResponse;
 }
 
-export default async (): Promise<Response> => {
+export async function runMatches(): Promise<Record<string, unknown>> {
   if (!process.env.FOOTBALL_DATA_API_KEY) {
-    return new Response("FOOTBALL_DATA_API_KEY not set", { status: 200 });
+    return { ok: false, skipped: "FOOTBALL_DATA_API_KEY not set" };
   }
 
   try {
@@ -207,18 +207,20 @@ export default async (): Promise<Response> => {
     const store = getStore("touchline");
     await store.setJSON("matches", blob);
 
-    return new Response(
-      JSON.stringify({ ok: true, matches: matches.length, groups: groups.length }),
-      { status: 200, headers: { "content-type": "application/json" } },
-    );
+    return { ok: true, matches: matches.length, groups: groups.length };
   } catch (err) {
     // Keep the last good snapshot; just log.
     console.error("[fetch-matches] failed:", err);
-    return new Response(JSON.stringify({ ok: false, error: String(err) }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
+    return { ok: false, error: String(err) };
   }
+}
+
+export default async (): Promise<Response> => {
+  const result = await runMatches();
+  return new Response(JSON.stringify(result), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
 };
 
 export const config: Config = {

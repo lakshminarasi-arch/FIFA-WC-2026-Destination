@@ -98,9 +98,10 @@ function mapEvents(events: any[], homeName: string): StatEntry["events"] {
     .filter((x): x is StatEntry["events"][number] => x !== null);
 }
 
-export default async (): Promise<Response> => {
+// Core logic, reused by the scheduled handler and the /api/refresh endpoint.
+export async function runStats(): Promise<Record<string, unknown>> {
   if (!process.env.API_FOOTBALL_KEY) {
-    return new Response("API_FOOTBALL_KEY not set", { status: 200 });
+    return { ok: false, skipped: "API_FOOTBALL_KEY not set" };
   }
   const store = getStore("touchline");
 
@@ -161,17 +162,19 @@ export default async (): Promise<Response> => {
     }
 
     await store.setJSON("stats", { updatedAt: new Date().toISOString(), entries });
-    return new Response(
-      JSON.stringify({ ok: true, fixtures: fixtures.length, fetchedCalls: fetched, cached: Object.keys(entries).length }),
-      { status: 200, headers: { "content-type": "application/json" } },
-    );
+    return { ok: true, fixtures: fixtures.length, fetchedCalls: fetched, cached: Object.keys(entries).length };
   } catch (err) {
     console.error("[fetch-stats] failed:", err);
-    return new Response(JSON.stringify({ ok: false, error: String(err) }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
+    return { ok: false, error: String(err) };
   }
+}
+
+export default async (): Promise<Response> => {
+  const result = await runStats();
+  return new Response(JSON.stringify(result), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
 };
 
 export const config: Config = {

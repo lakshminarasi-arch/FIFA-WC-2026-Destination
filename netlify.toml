@@ -6,11 +6,13 @@
 [functions]
   node_bundler = "esbuild"
 
-# Scheduling and the /api/data path are declared in-file via `export const config`
-# in each function (netlify/functions/*.mts):
-#   - fetch-matches: schedule "*/2 * * * *"
-#   - fetch-news:    schedule "*/20 * * * *"
-#   - get-data:      path "/api/data"
+# Scheduling and paths are declared in-file via `export const config` in each
+# function (netlify/functions/*.mts):
+#   - fetch-matches: schedule "*/2 * * * *"   (football-data.org → scores/standings)
+#   - fetch-news:    schedule "*/20 * * * *"  (RSS → headlines)
+#   - fetch-stats:   schedule "0 */3 * * *"   (API-Football → match stats/timeline)
+#   - get-data:      path "/api/data"         (serves the merged snapshot)
+#   - refresh:       path "/api/refresh"      (manual trigger + diagnostics)
 
 # SPA fallback — leave function/asset routes untouched, send everything else to
 # the app shell.

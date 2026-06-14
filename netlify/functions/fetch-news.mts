@@ -111,16 +111,13 @@ async function fetchFeed(source: string, url: string): Promise<NewsItem[]> {
   }
 }
 
-export default async (): Promise<Response> => {
+export async function runNews(): Promise<Record<string, unknown>> {
   const results = await Promise.all(FEEDS.map((f) => fetchFeed(f.source, f.url)));
   const merged = results.flat();
 
   if (merged.length === 0) {
     // Nothing parsed — keep the last good blob.
-    return new Response(JSON.stringify({ ok: false, items: 0 }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
+    return { ok: false, items: 0 };
   }
 
   // Dedupe by link, sort newest first, cap.
@@ -138,7 +135,12 @@ export default async (): Promise<Response> => {
   const store = getStore("touchline");
   await store.setJSON("news", { updatedAt: new Date().toISOString(), items: deduped });
 
-  return new Response(JSON.stringify({ ok: true, items: deduped.length }), {
+  return { ok: true, items: deduped.length };
+}
+
+export default async (): Promise<Response> => {
+  const result = await runNews();
+  return new Response(JSON.stringify(result), {
     status: 200,
     headers: { "content-type": "application/json" },
   });
